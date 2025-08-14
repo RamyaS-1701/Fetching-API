@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Data Fetch</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            
+            /* Gradient background, will be animated by JavaScript */
+            background: linear-gradient(135deg, #a8dadc, #457b9d, #1d3557, #e63946);
+            background-size: 400% 400%;
+
+            overflow-x: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        /* The main content container has a semi-transparent white background */
+        .main-content {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(5px);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 1;
+            margin-top: 20px;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        button {
+            padding: 10px 15px;
+            margin-bottom: 20px;
+            border: none;
+            background-color: #3498db;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+            /* Add a transition for smooth animation */
+            transition: all 0.2s ease-in-out;
+        }
+        
+        /* New hover and active animations for the button */
+        button:hover {
+            background-color: #2980b9;
+            transform: scale(1.05);
+        }
+        
+        button:active {
+            background-color: #1a6493;
+            transform: scale(0.95);
+        }
+
+        .user-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .user-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 0 8px rgba(0,0,0,0.1);
+            width: 250px;
+            text-align: left;
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+        }
+
+        /* Card fade-in animation with slide effect */
+        .user-card {
+            animation: fadeInSlide 0.5s ease-out forwards;
+            opacity: 0;
+        }
+
+        @keyframes fadeInSlide {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Animation for the hover effect */
+        .user-card:hover {
+            transform: rotate(2deg);
+            box-shadow: 0 0 15px rgba(52, 152, 219, 0.5);
+        }
+
+        .user-card h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+
+        .user-card p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
+        /* Styling for the loading indicator */
+        .loading-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: #555;
+            padding: 20px;
+        }
+        
+        /* Spin animation for the SVG */
+        .loading-spinner {
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-content">
+        <h1>User Information</h1>
+        <button id="reloadBtn">Reload Data</button>
+
+        <!-- Dedicated element for loading and error messages -->
+        <div id="messageContainer" class="message-container">
+            <!-- Loading indicator with animated spinner -->
+            <div id="loadingMessage" class="loading-indicator hidden">
+                <svg class="loading-spinner" width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path fill="currentColor" d="M12,4A8,8 0 0120,12A8,8 0 0112,20A8,8 0 014,12A8,8 0 0112,4M12,6A6,6 0 006,12A6,6 0 0012,18A6,6 0 0018,12A6,6 0 0012,6M12,7A5,5 0 0117,12A5,5 0 0112,17A5,5 0 017,12A5,5 0 0112,7Z" opacity="0.2"/>
+                    <path fill="currentColor" d="M12,4A8,8 0 0120,12A8,8 0 0112,20A8,8 0 014,12A8,8 0 0112,4M12,6A6,6 0 006,12A6,6 0 0012,18A6,6 0 0018,12A6,6 0 0012,6M12,7A5,5 0 0117,12A5,5 0 0112,17A5,5 0 017,12A5,5 0 0112,7Z" opacity="0.2"/>
+                    <path fill="currentColor" d="M12,20A8,8 0 014,12H6A6,6 0 0012,18V20Z">
+                        <animateTransform attributeName="transform" type="rotate" dur="1s" values="0 12 12;360 12 12" repeatCount="indefinite" />
+                    </path>
+                </svg>
+                <span>Loading users...</span>
+            </div>
+        </div>
+
+        <div id="userContainer" class="user-container">
+            <!-- User data will appear here -->
+        </div>
+    </div>
+
+    <!-- Import Anime.js library from a CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+
+    <script>
+        const userContainer = document.getElementById('userContainer');
+        const reloadBtn = document.getElementById('reloadBtn');
+        const loadingMessage = document.getElementById('loadingMessage');
+        const messageContainer = document.getElementById('messageContainer');
+
+        function animateBackground() {
+            anime({
+                targets: 'body',
+                backgroundPosition: ['0% 50%', '100% 50%'],
+                direction: 'alternate',
+                loop: true,
+                easing: 'easeInOutQuad',
+                duration: 15000 // 15 seconds
+            });
+        }
+
+        function fetchUsers() {
+            // Clear previous user data
+            userContainer.innerHTML = '';
+            
+            // Clear any old error messages
+            const existingErrorMessage = messageContainer.querySelector('.error-message');
+            if (existingErrorMessage) {
+                existingErrorMessage.remove();
+            }
+
+            // Show the loading indicator
+            loadingMessage.classList.remove('hidden');
+
+            fetch('https://jsonplaceholder.typicode.com/users')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(users => {
+                    // Hide the loading indicator on success
+                    loadingMessage.classList.add('hidden');
+                    
+                    users.forEach((user, index) => {
+                        const card = document.createElement('div');
+                        card.classList.add('user-card');
+                        card.innerHTML = `
+                            <h3>${user.name}</h3>
+                            <p><strong>Email:</strong> ${user.email}</p>
+                            <p><strong>Address:</strong> ${user.address.street}, ${user.address.city}</p>
+                        `;
+                        // Apply a staggered animation delay to each card
+                        card.style.animationDelay = `${index * 0.1}s`;
+                        userContainer.appendChild(card);
+                    });
+                })
+                .catch(error => {
+                    // Hide the loading indicator on error
+                    loadingMessage.classList.add('hidden');
+                    
+                    // Display an error message
+                    const errorMessage = document.createElement('p');
+                    errorMessage.classList.add('error-message');
+                    errorMessage.style.color = 'red';
+                    errorMessage.textContent = `Error: ${error.message}`;
+                    messageContainer.appendChild(errorMessage);
+
+                    console.error("Fetch error:", error);
+                });
+        }
+
+        reloadBtn.addEventListener('click', fetchUsers);
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchUsers();
+            animateBackground(); // Start the animation after the page loads
+        });
+
+    </script>
+</body>
+</html>
